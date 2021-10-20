@@ -1,0 +1,10 @@
+plugins {
+    id 'java'
+}
+
+group 'me.giverplay'
+version '0.0.1-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
