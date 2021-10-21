@@ -1,24 +1,27 @@
 package me.giverplay.manga.server.net;
 
 import me.giverplay.manga.net.NetworkHandler;
+import me.giverplay.manga.utils.ExceptionBiConsumer;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.SocketAddress;
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Random;
-import java.util.function.Consumer;
 
 public class ServerNetworkHandler implements NetworkHandler {
 
   private static final Random random = new Random();
 
-  private final DatagramSocket socket;
+  private final HashMap<String, MangaServerClient> clients = new HashMap<>();
   private final byte[] buffer = new byte[Short.MAX_VALUE];
 
-  private Consumer<byte[]> callback;
+  private final DatagramSocket socket;
+
+  private ExceptionBiConsumer<MangaServerClient, byte[]> callback;
 
   public ServerNetworkHandler(DatagramSocket socket) {
     this.socket = socket;
@@ -30,31 +33,40 @@ public class ServerNetworkHandler implements NetworkHandler {
 
     try {
       socket.receive(message);
-      processData(Arrays.copyOf(buffer, message.getLength()));
 
-      if(random.nextInt(100) < 30) {
-        sendData(message.getSocketAddress(), ("Olá, " + message.getAddress().getHostName()).getBytes(StandardCharsets.UTF_8));
+      String clientName = message.getAddress().getHostName() + ":" + message.getPort();
+
+      if(!clients.containsKey(clientName)) {
+        clients.put(clientName, new MangaServerClient(this, (InetSocketAddress) message.getSocketAddress()));
       }
 
-    } catch (IOException e) {
+      MangaServerClient client = clients.get(clientName);
+
+      processData(client, Arrays.copyOf(buffer, message.getLength()));
+
+      if(random.nextInt(100) < 30) {
+        sendData(client.getAddress(), ("Olá, " + clientName).getBytes(StandardCharsets.UTF_8));
+      }
+
+    } catch (Exception e) {
       e.printStackTrace();
     }
   }
 
   @Override
-  public void sendData(SocketAddress address, byte[] data) throws IOException {
+  public void sendData(InetSocketAddress address, byte[] data) throws IOException {
     DatagramPacket packet = new DatagramPacket(data, data.length, address);
     socket.send(packet);
   }
 
   @Override
-  public void onPacketReceived(Consumer<byte[]> callback) {
+  public void onPacketReceived(ExceptionBiConsumer<MangaServerClient, byte[]> callback) {
     this.callback = callback;
   }
 
-  private void processData(byte[] data) {
+  private void processData(MangaServerClient client, byte[] data) throws Exception {
     if(callback != null) {
-      callback.accept(data);
+      callback.accept(client, data);
     }
   }
 }

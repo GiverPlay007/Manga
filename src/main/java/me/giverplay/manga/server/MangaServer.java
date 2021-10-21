@@ -23,9 +23,9 @@ public class MangaServer implements Runnable {
 
     handler = new ServerNetworkHandler(socket);
 
-    handler.onPacketReceived((data) -> {
+    handler.onPacketReceived((client, data) -> {
       String msg = new String(data, StandardCharsets.UTF_8);
-      System.out.println("[Server] " + msg);
+      System.out.println("[Server] " + client.getName() + ": " + msg);
     });
 
     new Thread(this, "Server").start();
@@ -38,5 +38,13 @@ public class MangaServer implements Runnable {
     while(isRunning) {
       handler.poll();
     }
+  }
+
+  public DatagramSocket getSocket() {
+    return socket;
+  }
+
+  public NetworkHandler getHandler() {
+    return handler;
   }
 }
