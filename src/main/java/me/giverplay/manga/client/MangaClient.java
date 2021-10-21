@@ -1,5 +1,7 @@
 package me.giverplay.manga.client;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -10,9 +12,15 @@ public class MangaClient {
     DatagramSocket socket = new DatagramSocket();
     InetAddress addr = InetAddress.getByName("localhost");
 
-    byte[] buffer = message.getBytes(StandardCharsets.UTF_8);
+    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+    DataOutputStream out = new DataOutputStream(bytes);
 
-    DatagramPacket packet = new DatagramPacket(buffer, buffer.length, addr, port);
+    out.writeInt(10);
+    out.writeUTF(message);
+
+    byte[] array = bytes.toByteArray();
+    DatagramPacket packet = new DatagramPacket(array, array.length, addr, port);
+
     socket.send(packet);
     socket.close();
   }
